@@ -1,22 +1,57 @@
 package com.router;
 
+import java.io.*;
+import java.net.*;
+import java.util.HashMap;
+import java.util.concurrent.CompletableFuture;
+
 public class Router {
 	private static final int BROKER_PORT = 5000;
 	private static final int MARKET_PORT = 5001;
+	private static HashMap<Integer, Socket> routingTable = new HashMap<>();
 
 	public void start() {
-		// Start listening for connections from brokers and markets
 		startBrokerListener();
-		startMarketListener();
+		//startMarketListener();
 	}
 
 	private void startBrokerListener() {
-		// Listen for connections from brokers on port 5000
-		// Assign unique IDs and communicate them back to brokers
-		// Handle incoming messages from brokers
-		// Validate messages and forward them to the appropriate destination
+		// !!! TODO: Respect the Chain of Responsibility pattern by refactoring this method
 
-		System.out.println("ROUTER: waiting brokers...");
+		try (ServerSocket serverSocket = new ServerSocket(BROKER_PORT)) {
+			System.out.println("waiting brokers...");
+
+			while (true) {
+				Socket socket = serverSocket.accept();
+
+				CompletableFuture.runAsync(() -> {
+					try {
+						int uniqueId = socket.getPort();
+						PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
+						routingTable.put(uniqueId, socket);
+						out.println(uniqueId);
+
+						BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+						String message;
+						while ((message = in.readLine()) != null) {
+							if (message.length() > 0) {
+								System.out.println("Received message from broker(" + uniqueId + "): " + message);
+							}
+						}
+					} catch (IOException e) {
+						System.out.println("Error in the router: " + e.getMessage());
+					} finally {
+						try {
+							socket.close();
+						} catch (IOException e) {
+							System.out.println("Error closing socket: " + e.getMessage());
+						}
+					}
+				});
+			}
+		} catch (IOException e) {
+			System.out.println("Error in the router: " + e.getMessage());
+		}
 	}
 
 	private void startMarketListener() {

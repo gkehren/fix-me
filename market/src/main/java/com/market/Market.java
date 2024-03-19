@@ -6,10 +6,10 @@ import java.util.List;
 public class Market {
 	private static final int ROUTER_PORT = 5001;
 
-	private String marketID;
+	private int marketID;
 	private List<Instrument> instruments;
 
-	public Market(String marketID) {
+	public Market(int marketID) {
 		this.marketID = marketID;
 		this.instruments = new ArrayList<>();
 		// Initialize instrument list with available instruments

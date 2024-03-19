@@ -3,9 +3,9 @@ package com.broker;
 public class Broker {
 	private static final int ROUTER_PORT = 5000;
 
-	private String brokerID;
+	private int brokerID;
 
-	public Broker(String brokerID) {
+	public Broker(int brokerID) {
 		this.brokerID = brokerID;
 	}
 
