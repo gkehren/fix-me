@@ -5,6 +5,69 @@ import java.net.*;
 import java.util.HashMap;
 import java.util.concurrent.CompletableFuture;
 
+interface Handler {
+	void setNext(Handler handler);
+	void handle(Socket socket, String message);
+}
+
+class MessageValidationHandler implements Handler {
+	private Handler next;
+
+	@Override
+	public void setNext(Handler handler) {
+		this.next = handler;
+	}
+
+	@Override
+	public void handle(Socket socket, String message) {
+		// Validate the message based on the checksum
+		// If the message is valid and there is a next handler, pass the request to the next handler
+		if (isValid(message) && next != null) {
+			next.handle(socket, message);
+		}
+	}
+
+	private boolean isValid(String message) {
+		// Implement your message validation logic here
+		return true;
+	}
+}
+
+class RoutingHandler implements Handler {
+	private Handler next;
+	// Similar to MessageValidationHandler, but with routing logic
+
+	@Override
+	public void setNext(Handler handler) {
+		this.next = handler;
+	}
+
+	@Override
+	public void handle(Socket socket, String message) {
+		// Implement routing logic here
+		System.out.println("Received message from broker(" + socket.getPort() + "): " + message);
+
+		next.handle(socket, message);
+	}
+}
+
+class MessageForwardingHandler implements Handler {
+	private Handler next;
+	// Similar to MessageValidationHandler, but with message forwarding logic
+
+	@Override
+	public void setNext(Handler handler) {
+		this.next = handler;
+	}
+
+	@Override
+	public void handle(Socket socket, String message) {
+		// Implement message forwarding logic here
+
+		System.out.println("Forwarding message to market: " + message);
+	}
+}
+
 public class Router {
 	private static final int BROKER_PORT = 5000;
 	private static final int MARKET_PORT = 5001;
@@ -16,10 +79,15 @@ public class Router {
 	}
 
 	private void startBrokerListener() {
-		// !!! TODO: Respect the Chain of Responsibility pattern by refactoring this method
-
 		try (ServerSocket serverSocket = new ServerSocket(BROKER_PORT)) {
 			System.out.println("waiting brokers...");
+
+			Handler handler = new MessageValidationHandler();
+			Handler routingHandler = new RoutingHandler();
+			Handler forwardingHandler = new MessageForwardingHandler();
+
+			handler.setNext(routingHandler);
+			routingHandler.setNext(forwardingHandler);
 
 			while (true) {
 				Socket socket = serverSocket.accept();
@@ -35,7 +103,7 @@ public class Router {
 						String message;
 						while ((message = in.readLine()) != null) {
 							if (message.length() > 0) {
-								System.out.println("Received message from broker(" + uniqueId + "): " + message);
+								handler.handle(socket, message);
 							}
 						}
 					} catch (IOException e) {
