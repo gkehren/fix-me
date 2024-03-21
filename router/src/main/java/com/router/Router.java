@@ -35,7 +35,11 @@ class MessageValidationHandler implements Handler {
 
 class RoutingHandler implements Handler {
 	private Handler next;
-	// Similar to MessageValidationHandler, but with routing logic
+	private HashMap<Integer, Socket> routingTable;
+
+	public RoutingHandler() {
+		this.routingTable = new HashMap<>();
+	}
 
 	@Override
 	public void setNext(Handler handler) {
@@ -44,27 +48,43 @@ class RoutingHandler implements Handler {
 
 	@Override
 	public void handle(Socket socket, String message) {
-		// Implement routing logic here
 		System.out.println("Received message from broker(" + socket.getPort() + "): " + message);
 
-		next.handle(socket, message);
+		int destinationId = parseDestinationId(message);
+		Socket destinationSocket = routingTable.get(destinationId);
+
+		if (destinationSocket != null) {
+			if (next != null) {
+				next.handle(destinationSocket, message);
+			}
+		} else {
+			System.out.println("Destination not found for message: " + message);
+		}
+	}
+
+	private int parseDestinationId(String message) {
+		// Extract the destination ID from the message
+		return 0;
+
 	}
 }
 
 class MessageForwardingHandler implements Handler {
-	private Handler next;
-	// Similar to MessageValidationHandler, but with message forwarding logic
 
 	@Override
 	public void setNext(Handler handler) {
-		this.next = handler;
+		// No next handler
 	}
 
 	@Override
 	public void handle(Socket socket, String message) {
-		// Implement message forwarding logic here
-
-		System.out.println("Forwarding message to market: " + message);
+		try {
+			PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
+			out.println(message);
+			System.out.println("Forwarding message to market: " + message);
+		} catch (IOException e) {
+			System.out.println("Error forwarding message: " + e.getMessage());
+		}
 	}
 }
 
