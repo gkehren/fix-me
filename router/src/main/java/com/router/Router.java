@@ -118,6 +118,7 @@ public class Router {
 						PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
 						routingTable.put(uniqueId, socket);
 						out.println(uniqueId);
+						System.out.println("New broker connected. Assigned ID: " + uniqueId);
 
 						BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 						String message;

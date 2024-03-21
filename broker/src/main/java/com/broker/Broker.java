@@ -1,18 +1,29 @@
 package com.broker;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.net.Socket;
+
 public class Broker {
 	private static final int ROUTER_PORT = 5000;
 
 	private int brokerID;
 
-	public Broker(int brokerID) {
-		this.brokerID = brokerID;
+	public Broker() {
+		this.brokerID = -1;
 	}
 
 	public void start() {
-		// Establish connection with the message router
-		// Communicate broker ID to the router
-		// Start listening for responses from the market
+		try (Socket socket = new Socket("localhost", ROUTER_PORT)) {
+
+			BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+			this.brokerID = Integer.parseInt(in.readLine());
+
+			System.out.println("Connected to the router. Broker ID: " + brokerID);
+		} catch (IOException e) {
+			System.out.println("Error connecting to the router: " + e.getMessage());
+		}
 	}
 
 	public void sendBuyOrder() {
