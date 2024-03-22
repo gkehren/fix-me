@@ -40,29 +40,28 @@ public class Broker {
 		}
 	}
 
-	public void sendBuyOrder(int marketID, int instrumentID, int quantity, double price) {
-		// Construct and send a buy order message to the router
-		// Include broker ID in the message
 
-		// FOR TESTING PURPOSES ONLY (need to use FIX protocol)
+	public void sendOrder(boolean isBuy, int marketID, int instrumentID, int quantity, double price) {
 		try {
 			PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
-			out.println("BUY " + brokerID + " " + marketID + " " + instrumentID + " " + quantity + " " + price);
+			String fixMessage = "8=FIX.4.4\u0001" + // BeginString
+								"49=" + brokerID + "\u0001" + // SenderCompID
+								"56=" + marketID + "\u0001" + // TargetCompID
+								"55=" + instrumentID + "\u0001" + // Symbol
+								"54=" + (isBuy ? "1" : "2") + "\u0001" + // Side
+								"38=" + quantity + "\u0001" + // OrderQty
+								"44=" + price + "\u0001"; // Price
+
+			int checksum = 0;
+			for (char ch : fixMessage.toCharArray())
+				checksum += ch;
+			checksum %= 256;
+			String checkSumStr = String.format("%03d", checksum);
+			fixMessage += "10=" + checkSumStr + "\u0001";
+
+			out.println(fixMessage);
 		} catch (IOException e) {
 			System.out.println("Error sending buy order: " + e.getMessage());
-		}
-	}
-
-	public void sendSellOrder(int marketID, int instrumentID, int quantity, double price) {
-		// Construct and send a sell order message to the router
-		// Include broker ID in the message
-
-		// FOR TESTING PURPOSES ONLY (need to use FIX protocol)
-		try {
-			PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
-			out.println("SELL " + brokerID + " " + marketID + " " + instrumentID + " " + quantity + " " + price);
-		} catch (IOException e) {
-			System.out.println("Error sending sell order: " + e.getMessage());
 		}
 	}
 

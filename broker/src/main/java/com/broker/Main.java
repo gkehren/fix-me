@@ -36,10 +36,10 @@ public class Main {
 
 				switch (action.toLowerCase()) {
 					case "buy":
-						broker.sendBuyOrder(marketID, instrumentID, quantity, price);
+						broker.sendOrder(true, marketID, instrumentID, quantity, price);
 						break;
 					case "sell":
-						broker.sendSellOrder(marketID, instrumentID, quantity, price);
+						broker.sendOrder(false, marketID, instrumentID, quantity, price);
 						break;
 					default:
 						System.out.println("Invalid command. Type 'help' for a list of commands.");
