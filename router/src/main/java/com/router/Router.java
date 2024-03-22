@@ -29,8 +29,20 @@ class MessageValidationHandler implements Handler {
 	}
 
 	private boolean isValid(String message) {
-		// Implement your message validation logic here
-		return true;
+		String[] parts = message.split("10=");
+		if (parts.length != 2) {
+			return false;
+		}
+		String body = parts[0];
+		String checksumStr = parts[1].substring(0, 3);
+
+		int checksum = 0;
+		for (char ch : body.toCharArray()) {
+			checksum += ch;
+		}
+		checksum %= 256;
+
+		return String.format("%03d", checksum).equals(checksumStr);
 	}
 }
 
@@ -40,6 +52,10 @@ class RoutingHandler implements Handler {
 
 	public RoutingHandler() {
 		this.routingTable = new HashMap<>();
+	}
+
+	public void addRoute(int destinationId, Socket destinationSocket) {
+		routingTable.put(destinationId, destinationSocket);
 	}
 
 	@Override
@@ -65,8 +81,16 @@ class RoutingHandler implements Handler {
 
 	private int parseDestinationId(String message) {
 		// Extract the destination ID from the message
-		return 0;
+		// The separator is \u0001 (ASCII SOH) character
+		// The destination ID is the value of the 56 tag
 
+		String[] parts = message.split("\u0001");
+		for (String part : parts) {
+			if (part.startsWith("56=")) {
+				return Integer.parseInt(part.substring(3));
+			}
+		}
+		return -1;
 	}
 }
 
@@ -94,8 +118,17 @@ public class Router {
 	private static final int MARKET_PORT = 5001;
 	private volatile boolean stopRequested = false;
 	private static final AtomicInteger idGenerator = new AtomicInteger(100000);
+	private Handler handler;
+	private RoutingHandler routingHandler;
 
 	public void start() {
+		this.handler = new MessageValidationHandler();
+		this.routingHandler = new RoutingHandler();
+		Handler forwardingHandler = new MessageForwardingHandler();
+
+		handler.setNext(routingHandler);
+		routingHandler.setNext(forwardingHandler);
+
 		Thread brokerThread = new Thread(this::startBrokerListener);
 		Thread marketThread = new Thread(this::startMarketListener);
 
@@ -115,13 +148,6 @@ public class Router {
 		try (ServerSocket serverSocket = new ServerSocket(BROKER_PORT)) {
 			System.out.println("waiting brokers...");
 
-			Handler handler = new MessageValidationHandler();
-			Handler routingHandler = new RoutingHandler();
-			Handler forwardingHandler = new MessageForwardingHandler();
-
-			handler.setNext(routingHandler);
-			routingHandler.setNext(forwardingHandler);
-
 			while (!stopRequested) {
 				Socket socket = serverSocket.accept();
 
@@ -130,13 +156,14 @@ public class Router {
 						int uniqueId = generateUniqueId();
 						PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
 						out.println(uniqueId);
+						this.routingHandler.addRoute(uniqueId, socket);
 						System.out.println("New broker connected. Assigned ID: " + uniqueId);
 
 						BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 						String message;
 						while ((message = in.readLine()) != null) {
 							if (message.length() > 0) {
-								handler.handle(socket, message);
+								this.handler.handle(socket, message);
 							}
 						}
 					} catch (IOException e) {
@@ -159,13 +186,6 @@ public class Router {
 		try (ServerSocket serverSocket = new ServerSocket(MARKET_PORT)) {
 			System.out.println("waiting markets...");
 
-			Handler handler = new MessageValidationHandler();
-			Handler routingHandler = new RoutingHandler();
-			Handler forwardingHandler = new MessageForwardingHandler();
-
-			handler.setNext(forwardingHandler);
-			routingHandler.setNext(forwardingHandler);
-
 			while (!stopRequested) {
 				Socket socket = serverSocket.accept();
 
@@ -174,13 +194,14 @@ public class Router {
 						int uniqueId = generateUniqueId();
 						PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
 						out.println(uniqueId);
+						this.routingHandler.addRoute(uniqueId, socket);
 						System.out.println("New market connected. Assigned ID: " + uniqueId);
 
 						BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 						String message;
 						while ((message = in.readLine()) != null) {
 							if (message.length() > 0) {
-								handler.handle(socket, message);
+								this.handler.handle(socket, message);
 							}
 						}
 					} catch (IOException e) {

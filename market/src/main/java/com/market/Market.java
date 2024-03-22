@@ -45,6 +45,7 @@ public class Market {
 
 	public void listen() {
 		try {
+			System.out.println("Waiting for messages...");
 			BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 			String message;
 			while (true) {
@@ -57,6 +58,7 @@ public class Market {
 		} catch (IOException e) {
 			System.out.println("Error reading from socket: " + e.getMessage());
 		}
+		System.out.println("Market stopped.");
 	}
 
 	public void processMessage(String message) {
