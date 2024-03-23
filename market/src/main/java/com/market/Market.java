@@ -17,6 +17,11 @@ public class Market {
 		this.marketID = -1;
 		this.socket = null;
 		this.instruments = instruments;
+
+		System.out.println("Instruments available in the market:");
+		for (Instrument instrument : instruments) {
+			System.out.println("Symbol: " + instrument.getSymbol() + ", Quantity: " + instrument.getAvailableQuantity());
+		}
 	}
 
 	public int start() {
@@ -62,29 +67,100 @@ public class Market {
 	}
 
 	public void processMessage(String message) {
-		System.out.println("Received message: " + message);
-		// Process incoming message from a broker
-		// Check if the message is a buy or sell order
-		// Extract the instrument ID, quantity, and price from the message
-		// Call processOrder() to handle the order
+		String[] parts = message.split("\u0001");
+		int brokerID = Integer.parseInt(parts[1].split("=")[1]);
+		String instrumentID = parts[3].split("=")[1];
+		int quantity = Integer.parseInt(parts[5].split("=")[1]);
+		boolean isBuy = parts[4].split("=")[1].equals("1");
+		double price = Double.parseDouble(parts[6].split("=")[1]);
+
+		if (isBuy) {
+			processBuyOrder(brokerID, instrumentID, quantity, price);
+		} else {
+			processSellOrder(brokerID, instrumentID, quantity, price);
+		}
 	}
 
-	public void processBuyOrder(int brokerID, int instrumentID, int quantity, double price) {
-		// Process incoming order from a broker
-		// Check if the requested instrument is available for trading
-		// Check if the requested quantity can be fulfilled
-		// Update internal instrument list accordingly
-		// Send execution confirmation or rejection to the broker
+	public void processBuyOrder(int brokerID, String instrumentID, int quantity, double price) {
+		Instrument instrument = instruments.stream().filter(i -> i.getSymbol().equals(instrumentID)).findFirst().orElse(null);
+		if (instrument == null) {
+			System.out.println("Instrument not found: " + instrumentID);
+			sendRejection(brokerID, instrumentID, quantity, price);
+			return;
+		}
+		if (instrument.getAvailableQuantity() < quantity) {
+			System.out.println("Insufficient quantity for instrument: " + instrumentID);
+			sendRejection(brokerID, instrumentID, quantity, price);
+			return;
+		}
+		instrument.setAvailableQuantity(instrument.getAvailableQuantity() - quantity);
+		System.out.println("Buy order executed for instrument: " + instrumentID + ", quantity: " + quantity + ", price: " + price);
+		sendExecutionConfirmation(true, brokerID, instrumentID, quantity, price);
 	}
 
-	public void processSellOrder(int brokerID, int instrumentID, int quantity, double price) {
-		// Process incoming order from a broker
-		// Check if the requested instrument is available for trading
-		// Check if the requested quantity can be fulfilled
-		// Update internal instrument list accordingly
-		// Send execution confirmation or rejection to the broker
+	public void processSellOrder(int brokerID, String instrumentID, int quantity, double price) {
+		Instrument instrument = instruments.stream().filter(i -> i.getSymbol().equals(instrumentID)).findFirst().orElse(null);
+		if (instrument == null) {
+			System.out.println("Instrument not found: " + instrumentID);
+			sendRejection(brokerID, instrumentID, quantity, price);
+			return;
+		}
+		instrument.setAvailableQuantity(instrument.getAvailableQuantity() + quantity);
+		System.out.println("Sell order executed for instrument: " + instrumentID + ", quantity: " + quantity + ", price: " + price);
+		sendExecutionConfirmation(false, brokerID, instrumentID, quantity, price);
 	}
 
-	// Methods to handle order execution and sending messages to brokers
-	// e.g., sendExecutionConfirmation(), sendRejection()
+	public void sendExecutionConfirmation(boolean isBuy, int brokerID, String instrumentID, int quantity, double price) {
+		try {
+			PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
+			String fixMessage = "8=FIX.4.4\u0001" + // BeginString
+								"49=" + marketID + "\u0001" + // SenderCompID
+								"56=" + brokerID + "\u0001" + // TargetCompID
+								"55=" + instrumentID + "\u0001" + // Symbol
+								"54=" + (isBuy ? "1" : "2") + "\u0001" + // Side
+								"38=" + quantity + "\u0001" + // OrderQty
+								"44=" + price + "\u0001" + // Price
+								"39=2\u0001" + // OrdStatus (2 = Filled)
+								"150=2\u0001" + // ExecType = Trade
+								"151=0\u0001"; // LeavesQty = 0
+
+			int checksum = 0;
+			for (char ch : fixMessage.toCharArray())
+				checksum += ch;
+			checksum %= 256;
+			String checkSumStr = String.format("%03d", checksum);
+			fixMessage += "10=" + checkSumStr + "\u0001";
+
+			out.println(fixMessage);
+		} catch (IOException e) {
+			System.out.println("Error sending execution confirmation: " + e.getMessage());
+		}
+	}
+
+	public void sendRejection(int brokerID, String instrumentID, int quantity, double price) {
+		try {
+			PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
+			String fixMessage = "8=FIX.4.4\u0001" + // BeginString
+								"49=" + marketID + "\u0001" + // SenderCompID
+								"56=" + brokerID + "\u0001" + // TargetCompID
+								"55=" + instrumentID + "\u0001" + // Symbol
+								"54=1\u0001" + // Side (1 = Buy)
+								"38=" + quantity + "\u0001" + // OrderQty
+								"44=" + price + "\u0001" + // Price
+								"39=8\u0001" + // OrdStatus (8 = Rejected)
+								"150=8\u0001" + // ExecType = Rejected
+								"151=" + quantity + "\u0001"; // LeavesQty = OrderQty
+
+			int checksum = 0;
+			for (char ch : fixMessage.toCharArray())
+				checksum += ch;
+			checksum %= 256;
+			String checkSumStr = String.format("%03d", checksum);
+			fixMessage += "10=" + checkSumStr + "\u0001";
+
+			out.println(fixMessage);
+		} catch (IOException e) {
+			System.out.println("Error sending rejection: " + e.getMessage());
+		}
+	}
 }

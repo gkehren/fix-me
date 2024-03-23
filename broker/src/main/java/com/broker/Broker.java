@@ -5,6 +5,8 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
+import java.util.HashMap;
+import java.util.Map;
 
 public class Broker {
 	private static final int ROUTER_PORT = 5000;
@@ -41,7 +43,7 @@ public class Broker {
 	}
 
 
-	public void sendOrder(boolean isBuy, int marketID, int instrumentID, int quantity, double price) {
+	public void sendOrder(boolean isBuy, int marketID, String instrumentID, int quantity, double price) {
 		try {
 			PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
 			String fixMessage = "8=FIX.4.4\u0001" + // BeginString
@@ -60,11 +62,34 @@ public class Broker {
 			fixMessage += "10=" + checkSumStr + "\u0001";
 
 			out.println(fixMessage);
+			handleResponse();
 		} catch (IOException e) {
 			System.out.println("Error sending buy order: " + e.getMessage());
 		}
 	}
 
-	// Methods to handle responses from the market
-	// e.g., handleExecutionConfirmation(), handleRejection()
+	public void handleResponse() {
+		try {
+			BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+			String response = in.readLine();
+
+			String[] parts = response.split("\u0001");
+			Map<String, String> fields = new HashMap<>();
+			for (String part : parts) {
+				String[] keyValue = part.split("=");
+				if (keyValue.length == 2)
+					fields.put(keyValue[0], keyValue[1]);
+			}
+
+			String status = fields.get("39");
+			if ("2".equals(status))
+				System.out.println("Order executed successfully");
+			else if ("8".equals(status))
+				System.out.println("Order rejected");
+			else
+				System.out.println("Unknown status: " + status);
+		} catch (IOException e) {
+			System.out.println("Error handling response: " + e.getMessage());
+		}
+	}
 }

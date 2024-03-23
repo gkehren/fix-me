@@ -30,7 +30,7 @@ public class Main {
 
 				String action = parts[0];
 				int marketID = Integer.parseInt(parts[1]);
-				int instrumentID = Integer.parseInt(parts[2]);
+				String instrumentID = parts[2];
 				int quantity = Integer.parseInt(parts[3]);
 				double price = Double.parseDouble(parts[4]);
 
