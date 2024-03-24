@@ -3,12 +3,17 @@ package com.router;
 import java.io.*;
 import java.net.*;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
 
 interface Handler {
 	void setNext(Handler handler);
 	void handle(Socket socket, String message);
+
+	default void sendRejection(Socket socket, String message, String reason) {
+		Router.sendRejection(socket, message, reason);
+	}
 }
 
 class MessageValidationHandler implements Handler {
@@ -25,6 +30,9 @@ class MessageValidationHandler implements Handler {
 		// If the message is valid and there is a next handler, pass the request to the next handler
 		if (isValid(message) && next != null) {
 			next.handle(socket, message);
+		} else {
+			System.out.println("Invalid checksum: " + message);
+			sendRejection(socket, message, "Invalid checksum");
 		}
 	}
 
@@ -76,6 +84,7 @@ class RoutingHandler implements Handler {
 			}
 		} else {
 			System.out.println("Destination not found for message: " + message);
+			sendRejection(socket, message, "Destination not found");
 		}
 	}
 
@@ -109,6 +118,7 @@ class MessageForwardingHandler implements Handler {
 			System.out.println("Forwarding message to market: " + message);
 		} catch (IOException e) {
 			System.out.println("Error forwarding message: " + e.getMessage());
+			sendRejection(socket, message, "Market not available");
 		}
 	}
 }
@@ -217,6 +227,40 @@ public class Router {
 			}
 		} catch (IOException e) {
 			System.out.println("Error in the router: " + e.getMessage());
+		}
+	}
+
+	public static void sendRejection(Socket socket, String message, String reason) {
+		try {
+			String[] parts = message.split("\u0001");
+			Map<String, String> fields = new HashMap<>();
+			for (String part : parts) {
+				String[] keyValue = part.split("=");
+				if (keyValue.length == 2)
+					fields.put(keyValue[0], keyValue[1]);
+			}
+
+			String body = "35=3" + "\u0001" + // MsgType = Reject
+						  "49=" + fields.get("56") + "\u0001" + // SenderCompID
+						  "56=" + fields.get("49") + "\u0001" + // TargetCompID
+						  "45=" + fields.get("11") + "\u0001" + // RefSeqNum
+						  "58=" + reason + "\u0001"; // Text
+
+			String fixMessage = "8=FIX.4.4" + "\u0001" + // BeginString
+								"9=" + body.length() + "\u0001" + // BodyLength
+								body;
+
+			int checksum = 0;
+			for (char ch : fixMessage.toCharArray())
+				checksum += ch;
+			checksum %= 256;
+			String checkSumStr = String.format("%03d", checksum);
+			fixMessage += "10=" + checkSumStr + "\u0001";
+
+			PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
+			out.println(fixMessage);
+		} catch (IOException e) {
+			System.out.println("Error sending rejection: " + e.getMessage());
 		}
 	}
 }

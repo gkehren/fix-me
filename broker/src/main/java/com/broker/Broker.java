@@ -90,13 +90,20 @@ public class Broker {
 					fields.put(keyValue[0], keyValue[1]);
 			}
 
-			String status = fields.get("39");
-			if ("2".equals(status))
-				System.out.println("Order executed successfully");
-			else if ("8".equals(status))
-				System.out.println("Order rejected by the market: " + fields.get("58"));
-			else
-				System.out.println("Unknown status: " + status);
+			String msgType = fields.get("35");
+			if ("8".equals(msgType)) {
+				String status = fields.get("39");
+				if ("2".equals(status))
+					System.out.println("Order executed successfully");
+				else if ("8".equals(status))
+					System.out.println("Order rejected by the market: " + fields.get("58"));
+				else
+					System.out.println("Unknown status: " + status);
+			} else if ("3".equals(msgType)) {
+				System.out.println("Order rejected by the router: " + fields.get("58"));
+			} else {
+				System.out.println("Unknown message type: " + msgType);
+			}
 		} catch (IOException e) {
 			System.out.println("Error handling response: " + e.getMessage());
 		}

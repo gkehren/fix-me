@@ -94,12 +94,12 @@ public class Market {
 		Instrument instrument = instruments.stream().filter(i -> i.getSymbol().equals(instrumentID)).findFirst().orElse(null);
 		if (instrument == null) {
 			System.out.println("Instrument not found: " + instrumentID);
-			sendRejection(brokerID, instrumentID, quantity, price, "Instrument not found");
+			sendRejection(true, brokerID, instrumentID, quantity, price, "Instrument not found");
 			return;
 		}
 		if (instrument.getAvailableQuantity() < quantity) {
 			System.out.println("Insufficient quantity for instrument: " + instrumentID);
-			sendRejection(brokerID, instrumentID, quantity, price, "Insufficient quantity");
+			sendRejection(true, brokerID, instrumentID, quantity, price, "Insufficient quantity");
 			return;
 		}
 		instrument.setAvailableQuantity(instrument.getAvailableQuantity() - quantity);
@@ -111,7 +111,7 @@ public class Market {
 		Instrument instrument = instruments.stream().filter(i -> i.getSymbol().equals(instrumentID)).findFirst().orElse(null);
 		if (instrument == null) {
 			System.out.println("Instrument not found: " + instrumentID);
-			sendRejection(brokerID, instrumentID, quantity, price, "Instrument not found");
+			sendRejection(false, brokerID, instrumentID, quantity, price, "Instrument not found");
 			return;
 		}
 		instrument.setAvailableQuantity(instrument.getAvailableQuantity() + quantity);
@@ -150,14 +150,14 @@ public class Market {
 		}
 	}
 
-	public void sendRejection(int brokerID, String instrumentID, int quantity, double price, String reason) {
+	public void sendRejection(boolean isBuy, int brokerID, String instrumentID, int quantity, double price, String reason) {
 		try {
 			PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
 			String body = "35=8\u0001" + // MsgType = ExecutionReport
 						  "49=" + marketID + "\u0001" + // SenderCompID
 						  "56=" + brokerID + "\u0001" + // TargetCompID
 						  "55=" + instrumentID + "\u0001" + // Symbol
-						  "54=1\u0001" + // Side (1 = Buy)
+						  "54=" + (isBuy ? "1" : "2") + "\u0001" + // Side
 						  "38=" + quantity + "\u0001" + // OrderQty
 						  "44=" + price + "\u0001" + // Price
 						  "39=8\u0001" + // OrdStatus (8 = Rejected)
