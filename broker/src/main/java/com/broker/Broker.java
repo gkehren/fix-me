@@ -85,7 +85,7 @@ public class Broker {
 			if ("2".equals(status))
 				System.out.println("Order executed successfully");
 			else if ("8".equals(status))
-				System.out.println("Order rejected");
+				System.out.println("Order rejected by the market: " + fields.get("58"));
 			else
 				System.out.println("Unknown status: " + status);
 		} catch (IOException e) {
