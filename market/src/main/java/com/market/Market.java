@@ -1,6 +1,8 @@
 package com.market;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -68,11 +70,18 @@ public class Market {
 
 	public void processMessage(String message) {
 		String[] parts = message.split("\u0001");
-		int brokerID = Integer.parseInt(parts[1].split("=")[1]);
-		String instrumentID = parts[3].split("=")[1];
-		int quantity = Integer.parseInt(parts[5].split("=")[1]);
-		boolean isBuy = parts[4].split("=")[1].equals("1");
-		double price = Double.parseDouble(parts[6].split("=")[1]);
+		Map<String, String> fields = new HashMap<>();
+		for (String part : parts) {
+			String[] keyValue = part.split("=");
+			if (keyValue.length == 2)
+				fields.put(keyValue[0], keyValue[1]);
+		}
+
+		int brokerID = Integer.parseInt(fields.get("49"));
+		String instrumentID = fields.get("55");
+		int quantity = Integer.parseInt(fields.get("38"));
+		boolean isBuy = fields.get("54").equals("1");
+		double price = Double.parseDouble(fields.get("44"));
 
 		if (isBuy) {
 			processBuyOrder(brokerID, instrumentID, quantity, price);

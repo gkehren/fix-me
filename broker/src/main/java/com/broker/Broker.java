@@ -12,6 +12,7 @@ public class Broker {
 	private static final int ROUTER_PORT = 5000;
 	private int brokerID;
 	private Socket socket;
+	private int uniqueOrderID = 1;
 
 	public Broker() {
 		this.brokerID = -1;
@@ -46,13 +47,20 @@ public class Broker {
 	public void sendOrder(boolean isBuy, int marketID, String instrumentID, int quantity, double price) {
 		try {
 			PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
-			String fixMessage = "8=FIX.4.4\u0001" + // BeginString
-								"49=" + brokerID + "\u0001" + // SenderCompID
-								"56=" + marketID + "\u0001" + // TargetCompID
-								"55=" + instrumentID + "\u0001" + // Symbol
-								"54=" + (isBuy ? "1" : "2") + "\u0001" + // Side
-								"38=" + quantity + "\u0001" + // OrderQty
-								"44=" + price + "\u0001"; // Price
+
+			String body = "35=D" + "\u0001" + // MsgType = NewOrderSingle
+						  "11=" + uniqueOrderID  + "\u0001" + // ClOrdID
+						  "49=" + brokerID + "\u0001" + // SenderCompID
+						  "56=" + marketID + "\u0001" + // TargetCompID
+						  "55=" + instrumentID + "\u0001" + // Symbol
+						  "54=" + (isBuy ? "1" : "2") + "\u0001" + // Side
+						  "38=" + quantity + "\u0001" + // OrderQty
+						  "44=" + price + "\u0001" + // Price
+						  "40=1" + "\u0001"; // OrdType = Market
+
+			String fixMessage = "8=FIX.4.4" + "\u0001" + // BeginString
+								"9=" + body.length() + "\u0001" + // BodyLength
+								body;
 
 			int checksum = 0;
 			for (char ch : fixMessage.toCharArray())
@@ -62,6 +70,7 @@ public class Broker {
 			fixMessage += "10=" + checkSumStr + "\u0001";
 
 			out.println(fixMessage);
+			uniqueOrderID++;
 			handleResponse();
 		} catch (IOException e) {
 			System.out.println("Error sending buy order: " + e.getMessage());
