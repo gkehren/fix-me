@@ -47,10 +47,11 @@ public class Main {
 			String line;
 			while ((line = reader.readLine()) != null) {
 				String[] parts = line.split(",");
-				if (parts.length == 2) {
+				if (parts.length == 3) {
 					String symbol = parts[0];
 					int quantity = Integer.parseInt(parts[1]);
-					instruments.add(new Instrument(symbol, quantity));
+					double price = Double.parseDouble(parts[2]);
+					instruments.add(new Instrument(symbol, quantity, price));
 				}
 			}
 		} catch (IOException e) {
@@ -68,7 +69,8 @@ public class Main {
 			for (int i = 0; i < symbols.length; i++) {
 				String symbol = symbols[i];
 				int quantity = random.nextInt(1000) + 1;
-				writer.println(symbol + "," + quantity);
+				double price = random.nextDouble() * 1000;
+				writer.println(symbol + "," + quantity + "," + price);
 			}
 		} catch (IOException e) {
 			System.out.println("Error writing to file: " + e.getMessage());

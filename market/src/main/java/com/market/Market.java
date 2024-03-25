@@ -22,7 +22,7 @@ public class Market {
 
 		System.out.println("Instruments available in the market:");
 		for (Instrument instrument : instruments) {
-			System.out.println("Symbol: " + instrument.getSymbol() + ", Quantity: " + instrument.getAvailableQuantity());
+			System.out.println("Symbol: " + instrument.getSymbol() + ", Quantity: " + instrument.getAvailableQuantity() + ", Price: " + instrument.getPrice());
 		}
 	}
 
@@ -100,6 +100,11 @@ public class Market {
 		if (instrument.getAvailableQuantity() < quantity) {
 			System.out.println("Insufficient quantity for instrument: " + instrumentID);
 			sendRejection(true, brokerID, instrumentID, quantity, price, "Insufficient quantity");
+			return;
+		}
+		if (instrument.getPrice() > price) {
+			System.out.println("Invalid price for instrument: " + instrumentID);
+			sendRejection(true, brokerID, instrumentID, quantity, price, "Invalid price");
 			return;
 		}
 		instrument.setAvailableQuantity(instrument.getAvailableQuantity() - quantity);
