@@ -63,7 +63,7 @@ public class Main {
 
 	public static void generateRandomInstruments(String filename) {
 		Random random = new Random();
-		String[] symbols = {"AAPL", "GOOG", "MSFT", "AMZN", "FB", "TSLA", "NVDA", "NFLX"};
+		String[] symbols = {"AAPL", "GOOG", "MSFT", "AMZN", "FB", "TSLA", "NVDA", "NFLX", "IBM", "AMD", "QCOM", "ORCL", "CSCO"};
 
 		try (PrintWriter writer = new PrintWriter(filename)) {
 			for (int i = 0; i < symbols.length; i++) {
