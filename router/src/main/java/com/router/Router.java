@@ -4,8 +4,6 @@ import java.io.*;
 import java.net.*;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -15,36 +13,6 @@ interface Handler {
 
 	default void sendRejection(Socket socket, String message, String reason) {
 		Router.sendRejection(socket, message, reason);
-	}
-}
-
-class RoutingTable {
-	private static final HashMap<Integer, Socket> routingTable = new HashMap<>();
-	private static final HashMap<Integer, List<String>> pendingMessages = new HashMap<>();
-
-	public static void addRoute(int destinationId, Socket destinationSocket) {
-		routingTable.put(destinationId, destinationSocket);
-	}
-
-	public static Socket getRoute(int destinationId) {
-		return routingTable.get(destinationId);
-	}
-
-	public static void removeRoute(int destinationId) {
-		routingTable.remove(destinationId);
-	}
-
-	public static void addPendingMessage(int destinationId, String message) {
-		List<String> messages = pendingMessages.computeIfAbsent(destinationId, k -> new ArrayList<>());
-		messages.add(message);
-	}
-
-	public static List<String> getPendingMessage(int destinationId) {
-		return pendingMessages.get(destinationId);
-	}
-
-	public static void clearPendingMessages(int destinationId) {
-		pendingMessages.remove(destinationId);
 	}
 }
 
@@ -88,6 +56,15 @@ class MessageValidationHandler implements Handler {
 
 class RoutingHandler implements Handler {
 	private Handler next;
+	private HashMap<Integer, Socket> routingTable;
+
+	public RoutingHandler() {
+		this.routingTable = new HashMap<>();
+	}
+
+	public void addRoute(int destinationId, Socket destinationSocket) {
+		routingTable.put(destinationId, destinationSocket);
+	}
 
 	@Override
 	public void setNext(Handler handler) {
@@ -98,7 +75,9 @@ class RoutingHandler implements Handler {
 	public void handle(Socket socket, String message) {
 		System.out.println("Received message from broker(" + socket.getPort() + "): " + message);
 
-		Socket destinationSocket = RoutingTable.getRoute(parseDestinationId(message));
+		int destinationId = parseDestinationId(message);
+		Socket destinationSocket = routingTable.get(destinationId);
+
 		if (destinationSocket != null) {
 			if (next != null) {
 				next.handle(destinationSocket, message);
@@ -138,23 +117,8 @@ class MessageForwardingHandler implements Handler {
 			out.println(message);
 			System.out.println("Forwarding message to market: " + message);
 		} catch (IOException e) {
-			System.out.println("Error forwarding message (message stored for failover mechanism): " + e.getMessage());
-			String[] parts = message.split("\u0001");
-			Map<String, String> fields = new HashMap<>();
-			for (String part : parts) {
-				String[] keyValue = part.split("=");
-				if (keyValue.length == 2)
-					fields.put(keyValue[0], keyValue[1]);
-			}
-			RoutingTable.addPendingMessage(Integer.parseInt(fields.get("49")), message);
-
-			Socket senderSocket = null;
-			senderSocket = RoutingTable.getRoute(Integer.parseInt(fields.get("49")));
-			if (senderSocket != null) {
-				sendRejection(senderSocket, message, "Receiver not available");
-			} else {
-				System.out.println("Sender not found for message: " + message);
-			}
+			System.out.println("Error forwarding message: " + e.getMessage());
+			sendRejection(socket, message, "Market not available");
 		}
 	}
 }
@@ -197,16 +161,12 @@ public class Router {
 			while (!stopRequested) {
 				Socket socket = serverSocket.accept();
 
-				// For failover mechanism
-				// If the client sends his ID, we check if there is pending messages for him
-				// If there is, we send them to him
-
 				CompletableFuture.runAsync(() -> {
 					try {
 						int uniqueId = generateUniqueId();
 						PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
 						out.println(uniqueId);
-						RoutingTable.addRoute(uniqueId, socket);
+						this.routingHandler.addRoute(uniqueId, socket);
 						System.out.println("New broker connected. Assigned ID: " + uniqueId);
 
 						BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
@@ -244,7 +204,7 @@ public class Router {
 						int uniqueId = generateUniqueId();
 						PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
 						out.println(uniqueId);
-						RoutingTable.addRoute(uniqueId, socket);
+						this.routingHandler.addRoute(uniqueId, socket);
 						System.out.println("New market connected. Assigned ID: " + uniqueId);
 
 						BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));

@@ -82,11 +82,6 @@ public class Broker {
 			BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 			String response = in.readLine();
 
-			if (response == null) {
-				System.out.println("No response from the router.");
-				return;
-			}
-
 			String[] parts = response.split("\u0001");
 			Map<String, String> fields = new HashMap<>();
 			for (String part : parts) {
