@@ -129,6 +129,13 @@ public class Market {
 	}
 
 	public void sendExecutionConfirmation(boolean isBuy, int brokerID, String instrumentID, int quantity, double price) {
+		// For testing purposes (TODO: remove)
+		try {
+			Thread.sleep(5000);
+		} catch (InterruptedException e) {
+			System.out.println("Error sleeping: " + e.getMessage());
+		}
+
 		try {
 			PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
 			String body = "35=8\u0001" + // MsgType = ExecutionReport
