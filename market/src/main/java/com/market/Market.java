@@ -108,6 +108,7 @@ public class Market {
 			return;
 		}
 		instrument.setAvailableQuantity(instrument.getAvailableQuantity() - quantity);
+		instrument.setPrice(price);
 		System.out.println("Buy order executed for instrument: " + instrumentID + ", quantity: " + quantity + ", price: " + price);
 		System.out.println("Instrument: " + instrument.getSymbol() + ", Quantity: " + instrument.getAvailableQuantity() + ", Price: " + instrument.getPrice());
 		sendExecutionConfirmation(true, brokerID, instrumentID, quantity, price);
@@ -121,6 +122,7 @@ public class Market {
 			return;
 		}
 		instrument.setAvailableQuantity(instrument.getAvailableQuantity() + quantity);
+		instrument.setPrice(price);
 		System.out.println("Sell order executed for instrument: " + instrumentID + ", quantity: " + quantity + ", price: " + price);
 		System.out.println("Instrument: " + instrument.getSymbol() + ", Quantity: " + instrument.getAvailableQuantity() + ", Price: " + instrument.getPrice());
 		sendExecutionConfirmation(false, brokerID, instrumentID, quantity, price);
