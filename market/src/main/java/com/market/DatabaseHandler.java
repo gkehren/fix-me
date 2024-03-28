@@ -6,7 +6,7 @@ import java.sql.SQLException;
 import java.sql.PreparedStatement;
 
 public class DatabaseHandler {
-	private static final String DB_URL = "jdbc:postgresql://db:5003/fix-me";
+	private static final String DB_URL = "jdbc:postgresql://localhost:5003/fix-me";
 	private static final String DB_USER = "admin";
 	private static final String DB_PASSWORD = "admin";
 
