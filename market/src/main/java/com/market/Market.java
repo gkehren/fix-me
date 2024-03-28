@@ -111,6 +111,8 @@ public class Market {
 		instrument.setPrice(price);
 		System.out.println("Buy order executed for instrument: " + instrumentID + ", quantity: " + quantity + ", price: " + price);
 		System.out.println("Instrument: " + instrument.getSymbol() + ", Quantity: " + instrument.getAvailableQuantity() + ", Price: " + instrument.getPrice());
+		System.out.println("Stored buy transaction in database.");
+		DatabaseHandler.insertBuyTransaction(brokerID, marketID, instrument.getSymbol(), quantity, price);
 		sendExecutionConfirmation(true, brokerID, instrumentID, quantity, price);
 	}
 
@@ -125,6 +127,8 @@ public class Market {
 		instrument.setPrice(price);
 		System.out.println("Sell order executed for instrument: " + instrumentID + ", quantity: " + quantity + ", price: " + price);
 		System.out.println("Instrument: " + instrument.getSymbol() + ", Quantity: " + instrument.getAvailableQuantity() + ", Price: " + instrument.getPrice());
+		System.out.println("Stored sell transaction in database.");
+		DatabaseHandler.insertSellTransaction(brokerID, marketID, instrument.getSymbol(), quantity, price);
 		sendExecutionConfirmation(false, brokerID, instrumentID, quantity, price);
 	}
 
