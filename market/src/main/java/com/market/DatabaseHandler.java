@@ -6,9 +6,9 @@ import java.sql.SQLException;
 import java.sql.PreparedStatement;
 
 public class DatabaseHandler {
-	private static final String DB_URL = "jdbc:mysql://db:3306/market";
-	private static final String DB_USER = "root";
-	private static final String DB_PASSWORD = "root";
+	private static final String DB_URL = "jdbc:postgresql://db:5003/fix-me";
+	private static final String DB_USER = "admin";
+	private static final String DB_PASSWORD = "admin";
 
 	public static void insertBuyTransaction(int brokerID, int marketID, String symbol, int quantity, double price) {
 		try (Connection conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD)) {

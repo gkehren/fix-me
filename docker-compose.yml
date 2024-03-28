@@ -1,16 +1,26 @@
 version: "3.8"
 
 services:
-  database:
-    image: mysql
-    command: --default-authentication-plugin=mysql_native_password
-    restart: always
+  db:
+    image: postgres:14.5-alpine
+    restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: root
-      MYSQL_DATABASE: market
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5003
+      - POSTGRES_USER=admin
+      - POSTGRES_PASSWORD=admin
+      - POSTGRES_DB=fix-me
+    ports:
+      - 5003:5432
+    volumes:
+      - ./market/init.sql:/docker-entrypoint-initdb.d/init.sql
 
   adminer:
     image: adminer
-    restart: always
+    depends_on:
+      - db
     ports:
       - 8080:8080
+    restart: unless-stopped
+    links:
+      - db
