@@ -2,7 +2,9 @@ version: "3.8"
 
 services:
   db:
-    image: postgres:14.5-alpine
+    build:
+      context: ./market
+      dockerfile: Dockerfile
     restart: unless-stopped
     environment:
       - POSTGRES_HOST=postgres
@@ -12,8 +14,6 @@ services:
       - POSTGRES_DB=fix-me
     ports:
       - 5003:5432
-    volumes:
-      - ./market/init.sql:/docker-entrypoint-initdb.d/init.sql
 
   adminer:
     image: adminer
