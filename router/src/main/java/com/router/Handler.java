@@ -60,9 +60,20 @@ class RoutingHandler implements Handler {
 
 	@Override
 	public void handle(Socket socket, String message) {
-		System.out.println("Received message from client(" + socket.getPort() + "): " + message);
-
+		if (message == null || message.isEmpty()) {
+			System.out.println("Invalid message received");
+			sendRejection(socket, message, "Invalid message");
+			return;
+		}
+		int sourceId = parseSourceId(message);
 		int destinationId = parseDestinationId(message);
+		if (RoutingTable.isBrokerRoute(socket))
+			System.out.println("Received message from broker(" + sourceId + ") to market(" + destinationId + "): " + message);
+		else if (RoutingTable.isMarketRoute(socket))
+			System.out.println("Received message from market(" + sourceId + ") to broker(" + destinationId + "): " + message);
+		else
+			System.out.println("Received message from unknown source: " + message);
+
 		if (RoutingTable.isBrokerRoute(socket) && !RoutingTable.isMarketRoute(destinationId)) {
 			System.out.println("Broker can send messages only to the market");
 			sendRejection(socket, message, "Broker can send messages only to the market");
@@ -96,6 +107,20 @@ class RoutingHandler implements Handler {
 		}
 		return -1;
 	}
+
+	private int parseSourceId(String message) {
+		// Extract the source ID from the message
+		// The separator is \u0001 (ASCII SOH) character
+		// The source ID is the value of the 49 tag
+
+		String[] parts = message.split("\u0001");
+		for (String part : parts) {
+			if (part.startsWith("49=")) {
+				return Integer.parseInt(part.substring(3));
+			}
+		}
+		return -1;
+	}
 }
 
 class MessageForwardingHandler implements Handler {
@@ -110,10 +135,21 @@ class MessageForwardingHandler implements Handler {
 		try {
 			PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
 			out.println(message);
-			System.out.println("Forwarding message to market: " + message);
+			System.out.println("Message forwarded: " + message);
 		} catch (IOException e) {
 			System.out.println("Error forwarding message: " + e.getMessage());
-			sendRejection(socket, message, "Market not available");
+			int sourceId = 0;
+			String[] parts = message.split("\u0001");
+			for (String part : parts) {
+				if (part.startsWith("49=")) {
+					sourceId = Integer.parseInt(part.substring(3));
+				}
+			}
+			Socket sourceSocket = RoutingTable.getRoute(sourceId);
+			if (RoutingTable.isBrokerRoute(socket))
+				sendRejection(sourceSocket, message, "Broker not available");
+			else if (RoutingTable.isMarketRoute(socket))
+				sendRejection(sourceSocket, message, "Market not available");
 		}
 	}
 }
