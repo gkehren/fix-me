@@ -50,7 +50,7 @@ public class Router {
 						int uniqueId = generateUniqueId();
 						PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
 						out.println(uniqueId);
-						this.routingHandler.addRoute(uniqueId, socket);
+						RoutingTable.addBrokerRoute(uniqueId, socket);
 						System.out.println("New broker connected. Assigned ID: " + uniqueId);
 
 						BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
@@ -88,7 +88,7 @@ public class Router {
 						int uniqueId = generateUniqueId();
 						PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
 						out.println(uniqueId);
-						this.routingHandler.addRoute(uniqueId, socket);
+						RoutingTable.addMarketRoute(uniqueId, socket);
 						System.out.println("New market connected. Assigned ID: " + uniqueId);
 
 						BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));

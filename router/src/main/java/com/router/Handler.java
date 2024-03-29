@@ -2,10 +2,6 @@ package com.router;
 
 import java.io.*;
 import java.net.*;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.atomic.AtomicInteger;
 
 interface Handler {
 	void setNext(Handler handler);
@@ -56,15 +52,6 @@ class MessageValidationHandler implements Handler {
 
 class RoutingHandler implements Handler {
 	private Handler next;
-	private HashMap<Integer, Socket> routingTable;
-
-	public RoutingHandler() {
-		this.routingTable = new HashMap<>();
-	}
-
-	public void addRoute(int destinationId, Socket destinationSocket) {
-		routingTable.put(destinationId, destinationSocket);
-	}
 
 	@Override
 	public void setNext(Handler handler) {
@@ -73,18 +60,26 @@ class RoutingHandler implements Handler {
 
 	@Override
 	public void handle(Socket socket, String message) {
-		System.out.println("Received message from broker(" + socket.getPort() + "): " + message);
+		System.out.println("Received message from client(" + socket.getPort() + "): " + message);
 
 		int destinationId = parseDestinationId(message);
-		Socket destinationSocket = routingTable.get(destinationId);
-
-		if (destinationSocket != null) {
-			if (next != null) {
-				next.handle(destinationSocket, message);
-			}
+		if (RoutingTable.isBrokerRoute(socket) && !RoutingTable.isMarketRoute(destinationId)) {
+			System.out.println("Broker can send messages only to the market");
+			sendRejection(socket, message, "Broker can send messages only to the market");
+		} else if (RoutingTable.isMarketRoute(socket) && !RoutingTable.isBrokerRoute(destinationId)) {
+			System.out.println("Market can send messages only to the broker");
+			sendRejection(socket, message, "Market can send messages only to the broker");
 		} else {
-			System.out.println("Destination not found for message: " + message);
-			sendRejection(socket, message, "Destination not found");
+			Socket destinationSocket = RoutingTable.getRoute(destinationId);
+
+			if (destinationSocket != null) {
+				if (next != null) {
+					next.handle(destinationSocket, message);
+				}
+			} else {
+				System.out.println("Destination not found for message: " + message);
+				sendRejection(socket, message, "Destination not found");
+			}
 		}
 	}
 
