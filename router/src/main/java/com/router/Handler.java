@@ -74,11 +74,11 @@ class RoutingHandler implements Handler {
 			System.out.println("Received message from unknown source: " + message);
 
 		if (RoutingTable.isBrokerRoute(socket) && !RoutingTable.isMarketRoute(destinationId)) {
-			System.out.println("Broker can send messages only to the market");
-			sendRejection(socket, message, "Broker can send messages only to the market");
+			System.out.println("This destination is not a known market");
+			sendRejection(socket, message, "This destination is not a known market");
 		} else if (RoutingTable.isMarketRoute(socket) && !RoutingTable.isBrokerRoute(destinationId)) {
-			System.out.println("Market can send messages only to the broker");
-			sendRejection(socket, message, "Market can send messages only to the broker");
+			System.out.println("This destination is not a known broker");
+			sendRejection(socket, message, "This destination is not a known broker");
 		} else {
 			Socket destinationSocket = RoutingTable.getRoute(destinationId);
 

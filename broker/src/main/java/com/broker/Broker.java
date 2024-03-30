@@ -106,9 +106,9 @@ public class Broker {
 		if ("8".equals(msgType)) {
 			String status = fields.get("39");
 			if ("2".equals(status))
-				System.out.println("Order executed successfully");
+				System.out.println("Order executed successfully at the market(" + fields.get("49") + "): " + fields.get("55") + " " + fields.get("38") + " @ " + fields.get("44"));
 			else if ("8".equals(status))
-				System.out.println("Order rejected by the market: " + fields.get("58"));
+				System.out.println("Order rejected by the market(" + fields.get("49") + "): " + fields.get("55") + " " + fields.get("38") + " @ " + fields.get("44") + " (" + fields.get("58") + ")");
 			else
 				System.out.println("Unknown status: " + status);
 		} else if ("3".equals(msgType)) {
