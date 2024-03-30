@@ -23,7 +23,6 @@ class MessageValidationHandler implements Handler {
 	@Override
 	public void handle(Socket socket, String message) {
 		// Validate the message based on the checksum
-		// If the message is valid and there is a next handler, pass the request to the next handler
 		if (isValid(message) && next != null) {
 			next.handle(socket, message);
 		} else {

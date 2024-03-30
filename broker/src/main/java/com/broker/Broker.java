@@ -37,8 +37,6 @@ public class Broker {
 						String message = in.readLine();
 						if (message != null) {
 							handleMessage(message);
-						} else {
-							break;
 						}
 					} catch (IOException e) {
 						System.out.println("Error reading message: " + e.getMessage());

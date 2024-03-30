@@ -2,6 +2,7 @@ package com.router;
 
 import java.io.IOException;
 import java.net.Socket;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
@@ -48,7 +49,9 @@ public class RoutingTable {
 		if (pendingMessages.containsKey(id)) {
 			pendingMessages.get(id).add(message);
 		} else {
-			pendingMessages.put(id, List.of(message));
+			List<String> messages = new ArrayList<>();
+			messages.add(message);
+			pendingMessages.put(id, messages);
 		}
 	}
 
