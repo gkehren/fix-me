@@ -3,6 +3,7 @@ package com.router;
 import java.io.*;
 import java.net.*;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -47,13 +48,44 @@ public class Router {
 
 				CompletableFuture.runAsync(() -> {
 					try {
-						int uniqueId = generateUniqueId();
-						PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
-						out.println(uniqueId);
-						RoutingTable.addBrokerRoute(uniqueId, socket);
-						System.out.println("New broker connected. Assigned ID: " + uniqueId);
-
 						BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+						int brokerID = Integer.parseInt(in.readLine());
+						if (brokerID == -1) {
+							int uniqueId = generateUniqueId();
+							PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
+							out.println(uniqueId);
+							RoutingTable.addBrokerRoute(uniqueId, socket);
+							System.out.println("New broker connected. Assigned ID: " + uniqueId);
+						} else {
+							if (RoutingTable.isBrokerRoute(brokerID)) {
+								Socket oldSocket = RoutingTable.getRoute(brokerID);
+								if (oldSocket != null) {
+									oldSocket.close();
+								}
+
+								RoutingTable.addBrokerRoute(brokerID, socket);
+								System.out.println("Broker reconnected. ID: " + brokerID);
+
+								PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
+								out.println(brokerID);
+
+								// send pending messages
+								List<String> pendingMessages = RoutingTable.getPendingMessages(brokerID);
+								if (pendingMessages != null) {
+									for (String message : pendingMessages) {
+										out.println(message);
+									}
+									RoutingTable.removePendingMessages(brokerID);
+								}
+							} else {
+								int uniqueId = generateUniqueId();
+								PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
+								out.println(uniqueId);
+								RoutingTable.addBrokerRoute(uniqueId, socket);
+								System.out.println("New broker connected. Assigned ID: " + uniqueId);
+							}
+						}
+
 						String message;
 						while ((message = in.readLine()) != null) {
 							if (message.length() > 0) {
@@ -85,13 +117,51 @@ public class Router {
 
 				CompletableFuture.runAsync(() -> {
 					try {
-						int uniqueId = generateUniqueId();
-						PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
-						out.println(uniqueId);
-						RoutingTable.addMarketRoute(uniqueId, socket);
-						System.out.println("New market connected. Assigned ID: " + uniqueId);
-
 						BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+						int marketID = Integer.parseInt(in.readLine());
+						if (marketID == -1) {
+							int uniqueId = generateUniqueId();
+							PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
+							out.println(uniqueId);
+							RoutingTable.addMarketRoute(uniqueId, socket);
+							System.out.println("New market connected. Assigned ID: " + uniqueId);
+						} else {
+							if (RoutingTable.isMarketRoute(marketID)) {
+								Socket oldSocket = RoutingTable.getRoute(marketID);
+								if (oldSocket != null) {
+									oldSocket.close();
+								}
+								RoutingTable.addMarketRoute(marketID, socket);
+								System.out.println("Market reconnected. ID: " + marketID);
+
+								try {
+									PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
+									out.println(marketID);
+
+									// wait for the start of the market
+									Thread.sleep(1000);
+
+									// send pending messages
+									List<String> pendingMessages = RoutingTable.getPendingMessages(marketID);
+									if (pendingMessages != null) {
+										for (String message : pendingMessages) {
+											System.out.println("Sending pending message to market(" + marketID + "): " + message);
+											out.println(message);
+										}
+										RoutingTable.removePendingMessages(marketID);
+									}
+								} catch (InterruptedException e) {
+									System.out.println("Error while sleeping: " + e.getMessage());
+								}
+							} else {
+								int uniqueId = generateUniqueId();
+								PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
+								out.println(uniqueId);
+								RoutingTable.addMarketRoute(uniqueId, socket);
+								System.out.println("New market connected. Assigned ID: " + uniqueId);
+							}
+						}
+
 						String message;
 						while ((message = in.readLine()) != null) {
 							if (message.length() > 0) {

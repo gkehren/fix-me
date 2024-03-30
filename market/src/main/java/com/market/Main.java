@@ -10,7 +10,7 @@ import java.util.Random;
 
 public class Main {
 	public static void main(String[] args) {
-		if (args.length != 1) {
+		if (args.length < 1) {
 			System.out.println("Usage: java -jar market.jar <filename>");
 			System.exit(1);
 		}
@@ -33,7 +33,12 @@ public class Main {
 			System.exit(1);
 		}
 
-		Market market = new Market(instruments);
+		int id = -1;
+		if (args.length > 1) {
+			id = Integer.parseInt(args[1]);
+		}
+
+		Market market = new Market(instruments, id);
 		if (market.start() == -1)
 			return;
 

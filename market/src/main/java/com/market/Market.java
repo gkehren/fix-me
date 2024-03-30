@@ -15,8 +15,8 @@ public class Market {
 	private Socket socket;
 	private List<Instrument> instruments;
 
-	public Market(List<Instrument> instruments) {
-		this.marketID = -1;
+	public Market(List<Instrument> instruments, int id) {
+		this.marketID = id;
 		this.socket = null;
 		this.instruments = instruments;
 
@@ -29,6 +29,9 @@ public class Market {
 	public int start() {
 		try {
 			this.socket = new Socket("localhost", ROUTER_PORT);
+
+			PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
+			out.println(marketID);
 
 			BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 			this.marketID = Integer.parseInt(in.readLine());

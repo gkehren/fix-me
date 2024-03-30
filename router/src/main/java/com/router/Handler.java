@@ -139,12 +139,17 @@ class MessageForwardingHandler implements Handler {
 		} catch (IOException e) {
 			System.out.println("Error forwarding message: " + e.getMessage());
 			int sourceId = 0;
+			int destinationId = 0;
 			String[] parts = message.split("\u0001");
 			for (String part : parts) {
 				if (part.startsWith("49=")) {
 					sourceId = Integer.parseInt(part.substring(3));
+				} else if (part.startsWith("56=")) {
+					destinationId = Integer.parseInt(part.substring(3));
 				}
 			}
+			RoutingTable.addPendingMessage(destinationId, message);
+			System.out.println("Message saved for failover: " + message);
 			Socket sourceSocket = RoutingTable.getRoute(sourceId);
 			if (RoutingTable.isBrokerRoute(socket))
 				sendRejection(sourceSocket, message, "Broker not available");

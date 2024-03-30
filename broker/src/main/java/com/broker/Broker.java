@@ -14,8 +14,8 @@ public class Broker {
 	private Socket socket;
 	private int uniqueOrderID = 1;
 
-	public Broker() {
-		this.brokerID = -1;
+	public Broker(int id) {
+		this.brokerID = id;
 		this.socket = null;
 	}
 
@@ -23,10 +23,29 @@ public class Broker {
 		try {
 			this.socket = new Socket("localhost", ROUTER_PORT);
 
+			PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
+			out.println(brokerID);
+
 			BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 			this.brokerID = Integer.parseInt(in.readLine());
 
 			System.out.println("Connected to the router. Broker ID: " + brokerID);
+
+			new Thread(() -> {
+				while (true) {
+					try {
+						String message = in.readLine();
+						if (message != null) {
+							handleMessage(message);
+						} else {
+							break;
+						}
+					} catch (IOException e) {
+						System.out.println("Error reading message: " + e.getMessage());
+						break;
+					}
+				}
+			}).start();
 			return 0;
 		} catch (IOException e) {
 			System.out.println("Error connecting to the router: " + e.getMessage());
@@ -71,41 +90,33 @@ public class Broker {
 
 			out.println(fixMessage);
 			uniqueOrderID++;
-			handleResponse();
 		} catch (IOException e) {
 			System.out.println("Error sending buy order: " + e.getMessage());
 		}
 	}
 
-	public void handleResponse() {
-		try {
-			BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-			String response = in.readLine();
+	public void handleMessage(String message) {
+		String[] parts = message.split("\u0001");
+		Map<String, String> fields = new HashMap<>();
+		for (String part : parts) {
+			String[] keyValue = part.split("=");
+			if (keyValue.length == 2)
+				fields.put(keyValue[0], keyValue[1]);
+		}
 
-			String[] parts = response.split("\u0001");
-			Map<String, String> fields = new HashMap<>();
-			for (String part : parts) {
-				String[] keyValue = part.split("=");
-				if (keyValue.length == 2)
-					fields.put(keyValue[0], keyValue[1]);
-			}
-
-			String msgType = fields.get("35");
-			if ("8".equals(msgType)) {
-				String status = fields.get("39");
-				if ("2".equals(status))
-					System.out.println("Order executed successfully");
-				else if ("8".equals(status))
-					System.out.println("Order rejected by the market: " + fields.get("58"));
-				else
-					System.out.println("Unknown status: " + status);
-			} else if ("3".equals(msgType)) {
-				System.out.println("Order rejected by the router: " + fields.get("58"));
-			} else {
-				System.out.println("Unknown message type: " + msgType);
-			}
-		} catch (IOException e) {
-			System.out.println("Error handling response: " + e.getMessage());
+		String msgType = fields.get("35");
+		if ("8".equals(msgType)) {
+			String status = fields.get("39");
+			if ("2".equals(status))
+				System.out.println("Order executed successfully");
+			else if ("8".equals(status))
+				System.out.println("Order rejected by the market: " + fields.get("58"));
+			else
+				System.out.println("Unknown status: " + status);
+		} else if ("3".equals(msgType)) {
+			System.out.println("Order rejected by the router: " + fields.get("58"));
+		} else {
+			System.out.println("Unknown message type: " + msgType);
 		}
 	}
 }

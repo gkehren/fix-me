@@ -5,7 +5,11 @@ import java.util.Scanner;
 public class Main {
 	public static void main(String[] args) {
 		try {
-			Broker broker = new Broker();
+			int id = -1;
+			if (args.length > 0) {
+				id = Integer.parseInt(args[0]);
+			}
+			Broker broker = new Broker(id);
 			if (broker.start() == -1)
 				return;
 
