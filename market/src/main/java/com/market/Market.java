@@ -80,34 +80,11 @@ public class Market {
 				fields.put(keyValue[0], keyValue[1]);
 		}
 
-		int brokerID;
-		String instrumentID;
-		int quantity;
-		boolean isBuy;
-		double price;
-
-		String brokerIDStr = fields.get("49");
-		String instrumentIDStr = fields.get("55");
-		String quantityStr = fields.get("38");
-		String isBuyStr = fields.get("54");
-		String priceStr = fields.get("44");
-
-		if (brokerIDStr != null && instrumentIDStr != null && quantityStr != null && isBuyStr != null && priceStr != null) {
-			try {
-				brokerID = Integer.parseInt(brokerIDStr);
-				instrumentID = instrumentIDStr;
-				quantity = Integer.parseInt(quantityStr);
-				isBuy = isBuyStr.equals("1");
-				price = Double.parseDouble(priceStr);
-			} catch (NumberFormatException e) {
-				System.out.println("Invalid format for numeric fields: " + e.getMessage());
-				return;
-			}
-		} else {
-			System.out.println("Missing fields in the message");
-			// Send rejection
-			return;
-		}
+		int brokerID = Integer.parseInt(fields.get("49"));
+		String instrumentID = fields.get("55");
+		int quantity = Integer.parseInt(fields.get("38"));
+		boolean isBuy = fields.get("54").equals("1");
+		double price = Double.parseDouble(fields.get("44"));
 
 		if (isBuy) {
 			processBuyOrder(brokerID, instrumentID, quantity, price);
