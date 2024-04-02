@@ -60,6 +60,7 @@ public class Router {
 							if (RoutingTable.isBrokerRoute(brokerID)) {
 								Socket oldSocket = RoutingTable.getRoute(brokerID);
 								if (oldSocket != null) {
+									sendDisconnection(oldSocket, brokerID, "A new connection has been established");
 									oldSocket.close();
 								}
 
@@ -135,6 +136,7 @@ public class Router {
 							if (RoutingTable.isMarketRoute(marketID)) {
 								Socket oldSocket = RoutingTable.getRoute(marketID);
 								if (oldSocket != null) {
+									sendDisconnection(oldSocket, marketID, "A new connection has been established");
 									oldSocket.close();
 								}
 								RoutingTable.addMarketRoute(marketID, socket);
@@ -218,6 +220,31 @@ public class Router {
 			out.println(fixMessage);
 		} catch (IOException e) {
 			System.out.println("Error sending rejection: " + e.getMessage());
+		}
+	}
+
+	public static void sendDisconnection(Socket socket, int id, String reason) {
+		try {
+			PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
+			String body = "35=5" + "\u0001" + // MsgType = Logout
+						  "49=" + 0 + "\u0001" + // SenderCompID
+						  "56=" + id + "\u0001" + // TargetCompID
+						  "58=" + reason + "\u0001"; // Text
+
+			String fixMessage = "8=FIX.4.4\u0001" + // BeginString
+								"9=" + body.length() + "\u0001" + // BodyLength
+								body;
+
+			int checksum = 0;
+			for (char ch : fixMessage.toCharArray())
+				checksum += ch;
+			checksum %= 256;
+			String checkSumStr = String.format("%03d", checksum);
+			fixMessage += "10=" + checkSumStr + "\u0001";
+
+			out.println(fixMessage);
+		} catch (IOException e) {
+			System.out.println("Error sending execution confirmation: " + e.getMessage());
 		}
 	}
 }
