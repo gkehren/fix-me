@@ -14,6 +14,7 @@ public class Market {
 	private int marketID;
 	private Socket socket;
 	private List<Instrument> instruments;
+	private boolean running = true;
 
 	public Market(List<Instrument> instruments, int id) {
 		this.marketID = id;
@@ -45,10 +46,10 @@ public class Market {
 	}
 
 	public void stop() {
+		running = false;
 		try {
 			if (socket != null && !socket.isClosed())
 				socket.close();
-			System.exit(0);
 		} catch (IOException e) {
 			System.out.println("Error closing socket: " + e.getMessage());
 		}
@@ -59,7 +60,7 @@ public class Market {
 			System.out.println("Waiting for messages...");
 			BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 			String message;
-			while (true) {
+			while (running) {
 				message = in.readLine();
 				if (message != null && message.length() > 0) {
 					processMessage(message);

@@ -13,10 +13,15 @@ public class Broker {
 	private int brokerID;
 	private Socket socket;
 	private int uniqueOrderID = 1;
+	private volatile boolean running = true;
 
 	public Broker(int id) {
 		this.brokerID = id;
 		this.socket = null;
+	}
+
+	boolean isRunning() {
+		return running;
 	}
 
 	public int start() {
@@ -32,7 +37,7 @@ public class Broker {
 			System.out.println("Connected to the router. Broker ID: " + brokerID);
 
 			new Thread(() -> {
-				while (true) {
+				while (running) {
 					try {
 						String message = in.readLine();
 						if (message != null) {
@@ -55,12 +60,10 @@ public class Broker {
 		try {
 			if (socket != null && !socket.isClosed())
 				socket.close();
-			System.exit(0);
 		} catch (IOException e) {
 			System.out.println("Error closing socket: " + e.getMessage());
 		}
 	}
-
 
 	public void sendOrder(boolean isBuy, int marketID, String instrumentID, int quantity, double price) {
 		try {
@@ -116,7 +119,7 @@ public class Broker {
 			System.out.println("Order rejected by the router: " + fields.get("58"));
 		} else if ("5".equals(msgType)) {
 			System.out.println("Disconnected by the router: " + fields.get("58"));
-			stop();
+			running = false;
 		} else {
 			System.out.println("Unknown message type: " + msgType);
 		}

@@ -16,7 +16,7 @@ public class Main {
 			System.out.println("Type 'help' for a list of commands.");
 			Scanner scanner = new Scanner(System.in);
 			String command;
-			while (true) {
+			while (broker.isRunning()) {
 				System.out.print("> ");
 				command = scanner.nextLine();
 				if (command.equalsIgnoreCase("exit") || command.equalsIgnoreCase("quit")) {
@@ -44,6 +44,10 @@ public class Main {
 						break;
 					case "sell":
 						broker.sendOrder(false, marketID, instrumentID, quantity, price);
+						break;
+					case "exit":
+						break;
+					case "quit":
 						break;
 					default:
 						System.out.println("Invalid command. Type 'help' for a list of commands.");
