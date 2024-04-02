@@ -48,6 +48,7 @@ public class Market {
 		try {
 			if (socket != null && !socket.isClosed())
 				socket.close();
+			System.exit(0);
 		} catch (IOException e) {
 			System.out.println("Error closing socket: " + e.getMessage());
 		}
@@ -80,16 +81,23 @@ public class Market {
 				fields.put(keyValue[0], keyValue[1]);
 		}
 
-		int brokerID = Integer.parseInt(fields.get("49"));
-		String instrumentID = fields.get("55");
-		int quantity = Integer.parseInt(fields.get("38"));
-		boolean isBuy = fields.get("54").equals("1");
-		double price = Double.parseDouble(fields.get("44"));
+		if (fields.get("35").equals("5")) {
+			System.out.println("Disconnected by the router: " + fields.get("58"));
+			stop();
+		} else if (fields.get("35").equals("D")) {
+			int brokerID = Integer.parseInt(fields.get("49"));
+			String instrumentID = fields.get("55");
+			int quantity = Integer.parseInt(fields.get("38"));
+			boolean isBuy = fields.get("54").equals("1");
+			double price = Double.parseDouble(fields.get("44"));
 
-		if (isBuy) {
-			processBuyOrder(brokerID, instrumentID, quantity, price);
+			if (isBuy) {
+				processBuyOrder(brokerID, instrumentID, quantity, price);
+			} else {
+				processSellOrder(brokerID, instrumentID, quantity, price);
+			}
 		} else {
-			processSellOrder(brokerID, instrumentID, quantity, price);
+			System.out.println("Unknown message type: " + fields.get("35"));
 		}
 	}
 

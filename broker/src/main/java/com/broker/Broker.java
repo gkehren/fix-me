@@ -55,6 +55,7 @@ public class Broker {
 		try {
 			if (socket != null && !socket.isClosed())
 				socket.close();
+			System.exit(0);
 		} catch (IOException e) {
 			System.out.println("Error closing socket: " + e.getMessage());
 		}
@@ -113,6 +114,9 @@ public class Broker {
 				System.out.println("Unknown status: " + status);
 		} else if ("3".equals(msgType)) {
 			System.out.println("Order rejected by the router: " + fields.get("58"));
+		} else if ("5".equals(msgType)) {
+			System.out.println("Disconnected by the router: " + fields.get("58"));
+			stop();
 		} else {
 			System.out.println("Unknown message type: " + msgType);
 		}
