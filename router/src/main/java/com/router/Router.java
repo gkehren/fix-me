@@ -66,16 +66,22 @@ public class Router {
 								RoutingTable.addBrokerRoute(brokerID, socket);
 								System.out.println("Broker reconnected. ID: " + brokerID);
 
-								PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
-								out.println(brokerID);
+								try {
+									PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
+									out.println(brokerID);
 
-								// send pending messages
-								List<String> pendingMessages = RoutingTable.getPendingMessages(brokerID);
-								if (pendingMessages != null) {
-									for (String message : pendingMessages) {
-										out.println(message);
+
+									List<String> pendingMessages = RoutingTable.getPendingMessages(brokerID);
+									if (pendingMessages != null) {
+										Thread.sleep(1000);
+										for (String message : pendingMessages) {
+											System.out.println("Sending pending message to broker(" + brokerID + "): " + message);
+											out.println(message);
+										}
+										RoutingTable.removePendingMessages(brokerID);
 									}
-									RoutingTable.removePendingMessages(brokerID);
+								} catch (InterruptedException e) {
+									System.out.println("Error while sleeping: " + e.getMessage());
 								}
 							} else {
 								int uniqueId = generateUniqueId();
@@ -138,12 +144,9 @@ public class Router {
 									PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
 									out.println(marketID);
 
-									// wait for the start of the market
-									Thread.sleep(1000);
-
-									// send pending messages
 									List<String> pendingMessages = RoutingTable.getPendingMessages(marketID);
 									if (pendingMessages != null) {
+										Thread.sleep(1000);
 										for (String message : pendingMessages) {
 											System.out.println("Sending pending message to market(" + marketID + "): " + message);
 											out.println(message);
